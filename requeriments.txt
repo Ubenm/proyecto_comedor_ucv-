@@ -1,0 +1,4 @@
+streamlit==1.38.0
+sqlalchemy==2.0.28
+werkzeug==3.0.1
+streamlit_option_menu
