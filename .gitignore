@@ -1,2 +1,9 @@
+<<<<<<< HEAD
 \venv
 pruebas.ipynb
+=======
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+>>>>>>> b13a78b876d676dc7b4a29630ae3358490062248
