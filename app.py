@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
+from app_creacion import mostrar_formulario_registro
 
 # sit layout page
 st.set_page_config(
@@ -49,7 +50,7 @@ with co1:
   st.markdown(logo, unsafe_allow_html=True)
 
 with co2:
-  navbar = option_menu(None, ["Inicio","Reserva de Turnos", "Consulta de Menú Semanal", "Info. de Contacto para Donaciones","Reseñas"], 
+  navbar = option_menu(None, ["Inicio","Reserva de Turnos", "Consulta de Menú Semanal", "Info. de Contacto para Donaciones","Reseñas","Registro de Usuarios"], 
                       icons=["display",'menu-down', 'calendar-week', "info-circle", "list-stars"], 
                       menu_icon="cast", default_index=0, orientation="horizontal",
                       styles={
@@ -98,6 +99,11 @@ elif navbar == "Consulta de Menú Semanal":
     </style>
     <img class = "img2" src= '%s' >""" % comidas[st.session_state['plato']][1]
     co2.markdown(img, unsafe_allow_html=True)
+
+## Registro de usuarios ### 
+
+if navbar == "Registro de Usuarios":
+  mostrar_formulario_registro()
 elif navbar == "Info. de Contacto para Donaciones":
   pass
 else:
