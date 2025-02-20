@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String
-from database import Base
+from database.database import Base
 from werkzeug.security import generate_password_hash
 
 class Usuario(Base):
@@ -15,5 +15,5 @@ class Usuario(Base):
 
 # Crear tablas al inicio (ejecutar una vez)
 if __name__ == "__main__":
-    from database import engine
+    from database.database import engine
     Base.metadata.create_all(bind=engine)

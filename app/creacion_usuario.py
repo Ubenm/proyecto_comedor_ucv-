@@ -1,6 +1,6 @@
 import streamlit as st
-from models import Usuario
-from database import get_db
+from database.models import Usuario
+from database.database import get_db
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
