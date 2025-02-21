@@ -1,8 +1,15 @@
 import streamlit as st
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)
+
 from database.models import Usuario
 from database.database import get_db
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash
+#from werkzeug.security import generate_password_hash
 
 # Función para registro
 def mostrar_formulario_registro():

@@ -1,6 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-from app.creacion_usuario import mostrar_formulario_registro
+from creacion_usuario import mostrar_formulario_registro
 
 # sit layout page
 st.set_page_config(
