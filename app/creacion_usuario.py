@@ -1,10 +1,11 @@
 import streamlit as st
-import os
 import sys
+import os
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-sys.path.append(project_root)
+# Ruta al directorio raíz del proyecto (PROYECTO_COMEDOR_UCV)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
 from database.models import Usuario
 from database.database import get_db

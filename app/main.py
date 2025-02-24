@@ -1,6 +1,12 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from creacion_usuario import mostrar_formulario_registro
+from database.models import Usuario, Base  # <-- Añade Base aquí
+from database.database import get_db, engine  # <-- Añade engine aquí
+from sqlalchemy.exc import IntegrityError
+
+# ----- Añade estas líneas al inicio -----
+Base.metadata.create_all(bind=engine) 
 
 # sit layout page
 st.set_page_config(
