@@ -1,0 +1,33 @@
+credentials:
+  usernames:
+    jcoello:
+      email: josemanuelcoello@gmail.com
+      name: Jose Coello
+      password: $2b$12$LqI.iL8jwKvF20JK2U1VJeNH7y7QQRxd9q2xpqhoUPGcwBoYAjSnW #jmc123
+    uluna:
+      email: ubenmluna@gmail.com
+      name: Uben Luna
+      password: $2b$12$.FNiM3kOlutJCGOAzSdfwuj0Sb8QF3FvgihoOxdoDh0aG3/7nPQpO #ul123
+    jhernandez:
+      email: yoslyhernandez@gmail.com
+      name: Yosly Hernández
+      password: $2b$12$pxRp8VdY.2QoX7rQeEADmuslhb6rbo9TKlfxFtVwoSgUczH/GHd5i #yh123
+    jcoello_admin:
+      email: josemanuelcoello@gmail.com
+      name: Jose Coello
+      password: $2b$12$LqI.iL8jwKvF20JK2U1VJeNH7y7QQRxd9q2xpqhoUPGcwBoYAjSnW #jmc123
+    uluna_admin:
+      email: ubenmluna@gmail.com
+      name: Uben Luna
+      password: $2b$12$.FNiM3kOlutJCGOAzSdfwuj0Sb8QF3FvgihoOxdoDh0aG3/7nPQpO #ul123
+    jhernandez_admin:
+      email: yoslyhernandez@gmail.com
+      name: Yosly Hernández
+      password: $2b$12$pxRp8VdY.2QoX7rQeEADmuslhb6rbo9TKlfxFtVwoSgUczH/GHd5i #yh123
+cookie:
+  expiry_days: 0.0006944444444444445
+  key: random_signature_key # Must be string
+  name: random_cookie_name
+preauthorized:
+  emails:
+  - melsby@gmail.com
