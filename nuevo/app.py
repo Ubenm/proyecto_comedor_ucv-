@@ -2,6 +2,12 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from prueba import poblar_base_datos, verificar_login
+from prueba import (
+                        obtener_usuarios,
+                        insertar_usuario,
+                        eliminar_usuario,
+                        actualizar_usuario
+                    )
 
 # Configuración de la página
 st.set_page_config(
