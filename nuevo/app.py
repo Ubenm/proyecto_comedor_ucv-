@@ -50,9 +50,9 @@ if not st.session_state.logged_in:
             if usuario:
                 st.session_state.logged_in = True
                 st.session_state.user_info = {
-                    "nombre": usuario.nombre,
-                    "rol": usuario.rol,
-                    "cedula": usuario.cedula
+                    "nombre": usuario['nombre'],
+                    "rol": usuario['rol'],
+                    "cedula": usuario['cedula']
                 }
                 st.rerun()
             else:
