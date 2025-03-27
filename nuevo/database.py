@@ -1,5 +1,5 @@
 import streamlit as st
-from sqlalchemy import create_engine, Column, Integer, String, select
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
 import bcrypt
 
@@ -17,13 +17,14 @@ class Usuario(Base):
     rol = Column(String, nullable=False)
     cedula = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
-
+    banderin = Column(Boolean, default=False)  # Nueva columna
     def verificar_password(self, password):
         """Verifica si la contraseña coincide con el hash almacenado"""
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash)
 
 # Crear la tabla si no existe
-Base.metadata.create_all(engine)
+engine_usuarios = create_engine("sqlite:///usuarios.db", echo=False)
+Base.metadata.create_all(engine_usuarios)
 
 # Funciones de utilidad
 def insertar_usuario(nombre, rol, cedula, password):
