@@ -160,7 +160,7 @@ def modulo_trabajador():
                     menu.cantidad_disponible -= 1
                     session.commit()
                 
-                st.experimental_rerun()
+                st.rerun()
 
 # ------------------------- Módulo de Comensales -------------------------
 def modulo_comensal():
@@ -214,7 +214,7 @@ def main():
                             "rol": usuario.rol,
                             "cedula": usuario.cedula
                         }
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("¡Credenciales incorrectas, camarada!")
     
@@ -235,8 +235,8 @@ def main():
                 None, menu_items,
                 icons=["house", "clipboard-check", "gear", "shield-check"],
                 menu_icon="cast", 
-                orientation="horizontal",
-                styles=sty.NAVBAR_STYLES
+                orientation="horizontal"
+                #styles=sty.NAVBAR_STYLES
             )
         
         # Contenido según rol
@@ -251,7 +251,7 @@ def main():
         if st.sidebar.button("🚪 Cerrar sesión revolucionaria"):
             st.session_state.logged_in = False
             st.session_state.user_info = None
-            st.experimental_rerun()
+            st.rerun()
 
 if __name__ == "__main__":
     main()
