@@ -58,7 +58,7 @@ Session_menu = sessionmaker(bind=engine_menu)
 
 # ------------------------- Configuración de la Aplicación -------------------------
 st.set_page_config(
-    page_title="Comedor Popular Socialista",
+    page_title="Comedor UCV",
     page_icon=":knife_fork_plate:",
     layout="wide"
 )
@@ -71,7 +71,7 @@ if 'logged_in' not in st.session_state:
 
 # ------------------------- Módulo de Administración -------------------------
 def modulo_administrador_menus():
-    st.subheader("Gestión Revolucionaria de Menús")
+    st.subheader("Gestión de Menús")
     
     opcion = st.selectbox(
         "Operaciones",
@@ -263,7 +263,7 @@ def modulo_trabajador():
             return
             
         # Paso 3: Restar ración y crear registro
-        if st.button("Registrar consumo revolucionario"):
+        if st.button("Registrar consumo"):
             if restar_racion(tipo_comida):
                 if crear_registro_comida(cedula, tipo_comida):
                     st.success("✅ Consumo registrado exitosamente")
@@ -313,9 +313,9 @@ def main():
     #poblar_usuarios_iniciales()
     
     if not st.session_state.logged_in:
-        st.title("Bienvenido al Comedor Popular")
+        st.title("Bienvenido al Comedor")
         
-        with st.form("Login Revolucionario"):
+        with st.form("Login"):
             cedula = st.text_input("Cédula")
             password = st.text_input("Contraseña", type="password")
             
@@ -373,7 +373,7 @@ def main():
             modulo_comensal()
 
         # Botón de cierre de sesión
-        if st.sidebar.button("🚪 Cerrar sesión revolucionaria"):
+        if st.sidebar.button("🚪 Cerrar sesión"):
             st.session_state.logged_in = False
             st.session_state.user_info = None
             st.rerun()
