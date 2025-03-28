@@ -1,20 +1,8 @@
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, Date, UniqueConstraint, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker
 import bcrypt
-from datetime import datetime
-from database import Base_usuarios  # Importar Base desde usuarios
+from datetime import date
 
-class RegistroComida(Base_usuarios):  # Usar la misma Base declarativa
-    __tablename__ = "registro_comidas"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    usuario_id = Column(Integer, ForeignKey('usuarios.id'))
-    menu_id = Column(Integer, ForeignKey('menus.id')) 
-    fecha = Column(Date, default=datetime.now())
-    tipo_comida = Column(String)
-    # Configurar motor y sesión
-engine_menu = create_engine("sqlite:///menu.db")
-Session_menu = sessionmaker(bind=engine_menu)
-Base_usuarios.metadata.create_all(engine_menu)  # Crear todas las tablas
 
 DATABASE_URL = "sqlite:///menu.db"
 engine = create_engine(DATABASE_URL, echo=False)  # Motor de la base de datos
@@ -70,3 +58,24 @@ def eliminar_menu(id_menu):
     session.delete(menu)
     session.commit()
     session.close()
+def restar_racion(tipo_comida):
+    """Resta 1 ración del menú del día"""
+    session = Session()
+    try:
+        menu = session.query(MenuDia).filter(
+            MenuDia.fecha == date.today(),
+            MenuDia.tipo_comida == tipo_comida
+        ).first()
+        
+        if menu and menu.cantidad_disponible > 0:
+            menu.cantidad_disponible -= 1
+            session.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        session.rollback()
+        return False
+    finally:
+        session.close()
+Base.metadata.create_all(engine)

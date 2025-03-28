@@ -12,7 +12,14 @@ from database import (
     actualizar_usuario,
     verificar_login,
     poblar_base_datos)
-from database_menu import (insertar_menu, obtener_menus, actualizar_menu, eliminar_menu)
+from database_menu import (insertar_menu, obtener_menus, actualizar_menu, eliminar_menu, restar_racion)
+from registro_de_comidas import (
+    obtener_registros_comida,
+    actualizar_registro_comida,
+    eliminar_registro_comida,
+    crear_registro_comida,
+    verificar_registro_existente
+)
 
 # ------------------------- Configuración de Bases de Datos -------------------------
 Base_usuarios = declarative_base()
@@ -26,9 +33,6 @@ class Usuario(Base_usuarios):
     rol = Column(String, nullable=False)
     cedula = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    desayuno_comido = Column(Boolean, default=False)
-    almuerzo_comido = Column(Boolean, default=False)
-    cena_comido = Column(Boolean, default=False)
 
 # Modelo para menu.db
 class MenuDia(Base_menu):
@@ -52,29 +56,6 @@ Base_menu.metadata.create_all(engine_menu)
 Session_usuarios = sessionmaker(bind=engine_usuarios)
 Session_menu = sessionmaker(bind=engine_menu)
 
-# ------------------------- Funciones Esenciales -------------------------
-def poblar_usuarios_iniciales():
-    usuarios = [
-        ("Admin Revolucionario", "administrador", "001", "admin123"),
-        ("Trabajador Ejemplar", "trabajador", "201", "trab123"),
-        ("Ciudadano Modelo", "comensal", "101", "comensal123")
-    ]
-    
-    with Session_usuarios() as session:
-        for nombre, rol, cedula, password in usuarios:
-            if not session.query(Usuario).filter_by(cedula=cedula).first():
-                hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-                usuario = Usuario(
-                    nombre=nombre,
-                    rol=rol,
-                    cedula=cedula,
-                    password_hash=hashed_pw
-                )
-                session.add(usuario)
-        session.commit()
-
-
-
 # ------------------------- Configuración de la Aplicación -------------------------
 st.set_page_config(
     page_title="Comedor Popular Socialista",
@@ -97,7 +78,6 @@ def modulo_administrador_menus():
         ["Ver todos", "Agregar", "Editar", "Eliminar"]
     )
     
-    # Ver todos los menús
     if opcion == "Ver todos":
         menus = obtener_menus()
         st.table([{
@@ -107,7 +87,6 @@ def modulo_administrador_menus():
             "Disponibles": m.cantidad_disponible
         } for m in menus])
     
-    # Agregar nuevo menú
     elif opcion == "Agregar":
         with st.form("Nuevo menú"):
             fecha = st.date_input("Fecha")
@@ -123,7 +102,6 @@ def modulo_administrador_menus():
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
     
-    # Editar menú existente
     elif opcion == "Editar":
         menus = obtener_menus()
         menu_sel = st.selectbox("Seleccionar menú", 
@@ -149,7 +127,6 @@ def modulo_administrador_menus():
                         })
                         st.success("¡Actualización exitosa!")
     
-    # Eliminar menú
     elif opcion == "Eliminar":
         menus = obtener_menus()
         menu_sel = st.selectbox("Seleccionar menú a eliminar", 
@@ -165,142 +142,161 @@ def modulo_administrador_menus():
                 ).first()
                 eliminar_menu(menu.id)
                 st.success("¡Menú eliminado!")
-    
+
 def gestion_de_usuarios():
-        st.subheader("Panel de Administración")
-        
-        opcion = st.selectbox(
-            "Acciones:",
-            ["Ver usuarios", "Agregar usuario", "Editar usuario", "Eliminar usuario"]
-        )
-        
-        if opcion == "Ver usuarios":
-            usuarios = obtener_usuarios()
-            st.table([{"Nombre": u.nombre, "Rol": u.rol, "Cédula": u.cedula, 'Desayuno':u.desayuno_comido} for u in usuarios])
-        
-        elif opcion == "Agregar usuario":
-            with st.form("Agregar"):
-                nombre = st.text_input("Nombre completo")
-                rol = st.selectbox("Rol", ["administrador", "trabajador", "comensal"])
-                cedula = st.text_input("Cédula")
-                password = st.text_input("Contraseña", type="password")
+    st.subheader("Panel de Administración")
+    
+    opcion = st.selectbox(
+        "Acciones:",
+        ["Ver usuarios", "Agregar usuario", "Editar usuario", "Eliminar usuario"]
+    )
+    
+    if opcion == "Ver usuarios":
+        usuarios = obtener_usuarios()
+        st.table([{
+            "Nombre": u.nombre, 
+            "Rol": u.rol, 
+            "Cédula": u.cedula,
+        } for u in usuarios])
+    
+    elif opcion == "Agregar usuario":
+        with st.form("Agregar"):
+            nombre = st.text_input("Nombre completo")
+            rol = st.selectbox("Rol", ["administrador", "trabajador", "comensal"])
+            cedula = st.text_input("Cédula")
+            password = st.text_input("Contraseña", type="password")
+            
+            if st.form_submit_button("Guardar"):
+                try:
+                    insertar_usuario(nombre, rol, cedula, password)
+                    st.success("Usuario creado!")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+    
+    elif opcion == "Editar usuario":
+        cedula_editar = st.text_input("Ingrese cédula del usuario a editar")
+        if cedula_editar:
+            usuario = next((u for u in obtener_usuarios() if u.cedula == cedula_editar), None)
+            
+            if usuario:
+                with st.form("Editar"):
+                    nuevo_nombre = st.text_input("Nombre", value=usuario.nombre)
+                    nuevo_rol = st.selectbox("Rol", 
+                                        ["administrador", "trabajador", "comensal"],
+                                        index=["administrador", "trabajador", "comensal"].index(usuario.rol))
+                    nueva_pass = st.text_input("Nueva contraseña (dejar vacío para mantener)", type="password")
+
+                    if st.form_submit_button("Actualizar"):
+                        with Session_usuarios() as session:
+                            usuario_actualizado = session.query(Usuario).filter_by(cedula=cedula_editar).first()
+                            usuario_actualizado.nombre = nuevo_nombre
+                            usuario_actualizado.rol = nuevo_rol
+                            if nueva_pass:
+                                usuario_actualizado.password_hash = bcrypt.hashpw(nueva_pass.encode('utf-8'), bcrypt.gensalt())
+                            session.commit()
+                        st.success("Usuario actualizado!")
+            else:
+                st.error("Usuario no encontrado")
+    
+    elif opcion == "Eliminar usuario":
+        cedula_eliminar = st.text_input("Ingrese cédula del usuario a eliminar")
+        if cedula_eliminar:
+            if st.button("Confirmar eliminación"):
+                eliminar_usuario(cedula_eliminar)
+                st.success("Usuario eliminado del sistema")
+    
+
+def gestionar_registros():
+    st.subheader("Gestión Central de Registros")
+    
+    registros = obtener_registros_comida()
+    st.write("Registros históricos:")
+    st.table([{
+        "ID": r.id,
+        "Cédula": r.cedula_usuario,
+        "Fecha": r.fecha_hora.strftime("%d/%m/%Y"),
+        "Comida": r.tipo_comida,
+        "Menú": r.descripcion_menu
+    } for r in registros])
+    
+    st.divider()
+    registro_id = st.number_input("ID del Registro a Editar", min_value=1)
+    
+    if registro_id:
+        registro = next((r for r in registros if r.id == registro_id), None)
+        if registro:
+            nuevos_datos = {
+                "cedula_usuario": st.text_input("Cédula", value=registro.cedula_usuario),
+                "tipo_comida": st.selectbox(
+                    "Tipo Comida", 
+                    ["Desayuno", "Almuerzo", "Cena"],
+                    index=["Desayuno", "Almuerzo", "Cena"].index(registro.tipo_comida)
+                ),
+                "descripcion_menu": st.text_area("Descripción", value=registro.descripcion_menu)
+            }
+            
+            if st.button("Actualizar Registro"):
+                actualizar_registro_comida(registro_id, nuevos_datos)
+                st.success("¡Registro actualizado!")
                 
-                if st.form_submit_button("Guardar"):
-                    try:
-                        insertar_usuario(nombre, rol, cedula, password)
-                        st.success("Usuario creado!")
-                    except Exception as e:
-                        st.error(f"Error: {str(e)}")
-        
-        elif opcion == "Editar usuario":
-            cedula_editar = st.text_input("Ingrese cédula del usuario a editar")
-            if cedula_editar:
-                usuario = next((u for u in obtener_usuarios() if u.cedula == cedula_editar), None)
-                
-                if usuario:
-                    with st.form("Editar"):
-                        nuevo_nombre = st.text_input("Nombre", value=usuario.nombre)
-                        nuevo_rol = st.selectbox("Rol", 
-                                            ["administrador", "trabajador", "comensal"],
-                                            index=["administrador", "trabajador", "comensal"].index(usuario.rol))
-                        nueva_pass = st.text_input("Nueva contraseña (dejar vacío para mantener)", type="password")
-                       # nuevo_band = st.selectbox("Banderin", [True, False], index=[True, False].index(usuario.banderin))
-                        if st.form_submit_button("Actualizar"):
-                            actualizar_usuario(
-                                cedula_editar,
-                                nuevo_nombre,
-                                nuevo_rol,
-                                nueva_pass if nueva_pass else None
-                               # nuevo_band
-                            )
-                            st.success("Usuario actualizado!")
-                else:
-                    st.error("Usuario no encontrado")
-        
-        elif opcion == "Eliminar usuario":
-            cedula_eliminar = st.text_input("Ingrese cédula del usuario a eliminar")
-            if cedula_eliminar:
-                if st.button("Confirmar eliminación"):
-                    eliminar_usuario(cedula_eliminar)
-                    st.success("Usuario eliminado del sistema")
+            if st.button("Eliminar Registro", type="primary"):
+                eliminar_registro_comida(registro_id)
+                st.success("¡Registro eliminado!")
 
 # ------------------------- Módulo de Trabajadores -------------------------
 def modulo_trabajador():
-    st.subheader("Control de Distribución Proletaria")
+    st.subheader("Registro de Consumo Proletario")
     
     cedula = st.text_input("Cédula del Ciudadano")
+    tipo_comida = st.selectbox("Tipo de Comida", ["Desayuno", "Almuerzo", "Cena"])
     
-    if cedula:
-        with Session_usuarios() as session:
-            usuario = session.query(Usuario).filter(Usuario.cedula == cedula).first()
+    if cedula and tipo_comida:
+        # Paso 1: Verificar si es usuario válido
+        usuarios = [u.cedula for u in obtener_usuarios()]
+        if cedula not in usuarios:
+            st.error("¡Ciudadano no registrado en el sistema!")
+            return
             
-            if not usuario:
-                st.error("¡Ciudadano no registrado!")
-                return
-                
-            if usuario.banderin:
-                st.warning("¡Ya recibió su ración diaria!")
-                return
-        
-        # Verificar existencia del menú primero
-        with Session_menu() as session:
-
-
-            tipo_comida = st.selectbox("Tipo de comida", ["Desayuno", "Almuerzo", "Cena"])
-
-            menu = session.query(MenuDia).filter(
-                (MenuDia.fecha == datetime.date.today()) and (MenuDia.tipo_comida==tipo_comida)  # Asegurar coincidencia exacta
-            ).first()
-                  
-            if not menu:
-                st.error("⚠️ El menú del día no ha sido cargado")
-                return
-                
-            if menu.cantidad_disponible <= 0:
-                st.error("¡No hay raciones disponibles!")
-                return
-        
-        if st.button("Registrar consumo"):
+        # Paso 2: Verificar registro previo
+        if verificar_registro_existente(cedula, tipo_comida):
+            st.error("¡Ya registró este consumo hoy!")
+            return
             
-            try:
-                # Actualizar usuario
-                with Session_usuarios() as session:
-                    usuario = session.query(Usuario).filter(Usuario.cedula == cedula).first()
-                    usuario.banderin = True
-                    session.commit()
-                
-                # Actualizar menú
-                with Session_menu() as session:
-                    menu = session.query(MenuDia).filter((MenuDia.fecha == datetime.date.today())and
-                                                         (MenuDia.tipo_comida==tipo_comida)).first()
-                    
-                    menu.cantidad_disponible -= 1
-                    session.commit()
-                    
-                st.success("¡Consumo registrado con éxito!")
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Error revolucionario: {str(e)}")
-                session.rollback()
-
+        # Paso 3: Restar ración y crear registro
+        if st.button("Registrar consumo revolucionario"):
+            if restar_racion(tipo_comida):
+                if crear_registro_comida(cedula, tipo_comida):
+                    st.success("✅ Consumo registrado exitosamente")
+                    st.balloons()
+                else:
+                    st.error("Error al crear registro")
+            else:
+                st.error("¡No hay raciones disponibles o menú no configurado!")
 # ------------------------- Módulo de Comensales -------------------------
 def modulo_comensal():
-    st.subheader("Derechos Alimenticios del Ciudadano")
+    st.subheader("Estado de Consumo Diario")
     
-    with Session_usuarios() as session:
-        usuario = session.query(Usuario).filter(
-            Usuario.cedula == st.session_state.user_info['cedula']
-        ).first()
-        
-        st.markdown(f"""
-        **Estado de consumo:**  
-        {"✅ Ya has recibido tu ración" if usuario.banderin else "⚠️ Pendiente de recibir"}
-        """)
+    cedula = st.session_state.user_info['cedula']
+    hoy = datetime.date.today()
     
+    # Obtener registros de comida del usuario actual
+    registros = obtener_registros_comida()
+    consumos_hoy = [
+        r for r in registros 
+        if r.cedula_usuario == cedula 
+        and r.fecha_hora.date() == hoy
+    ]
+    
+    # Mostrar estado
+    st.markdown(f"""
+    **Estado de consumo:**  
+    {"✅ Ya has recibido tu ración hoy" if consumos_hoy else "⚠️ Pendiente de recibir"}
+    """)
+    
+    # Mostrar menús disponibles
     with Session_menu() as session:
         menus = session.query(MenuDia).filter(
-            MenuDia.fecha == datetime.date.today()
+            MenuDia.fecha == hoy
         ).all()
         
         for menu in menus:
@@ -351,6 +347,8 @@ def main():
             if st.session_state.user_info["rol"] == "administrador":
                 menu_items.append("Administración de menús")
                 menu_items.append("Gestionar Ciudadanos")
+                menu_items.append("Gestionar registros")
+
             elif st.session_state.user_info["rol"] == "trabajador":
                 menu_items.append("Control de Acceso")
             
@@ -367,6 +365,8 @@ def main():
             modulo_administrador_menus()
         elif navbar == "Gestionar Ciudadanos" and st.session_state.user_info["rol"] == "administrador":
             gestion_de_usuarios()
+        elif navbar == "Gestionar registros" and st.session_state.user_info["rol"] == "administrador":
+            gestionar_registros()
         elif navbar == "Control de Acceso" and st.session_state.user_info["rol"] == "trabajador":
             modulo_trabajador()
         else:
