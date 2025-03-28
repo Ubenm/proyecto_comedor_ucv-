@@ -5,6 +5,14 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 import bcrypt
 import datetime
 import styles as sty
+from database import (
+    obtener_usuarios,
+    insertar_usuario,
+    eliminar_usuario,
+    actualizar_usuario,
+    verificar_login,
+    poblar_base_datos)
+from database_menu import (insertar_menu, obtener_menus, actualizar_menu, eliminar_menu)
 
 # ------------------------- Configuración de Bases de Datos -------------------------
 Base_usuarios = declarative_base()
@@ -18,7 +26,9 @@ class Usuario(Base_usuarios):
     rol = Column(String, nullable=False)
     cedula = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    banderin = Column(Boolean, default=False)
+    desayuno_comido = Column(Boolean, default=False)
+    almuerzo_comido = Column(Boolean, default=False)
+    cena_comido = Column(Boolean, default=False)
 
 # Modelo para menu.db
 class MenuDia(Base_menu):
@@ -79,88 +89,200 @@ if 'logged_in' not in st.session_state:
     st.session_state.user_info = None
 
 # ------------------------- Módulo de Administración -------------------------
-def modulo_administrador():
-    st.subheader("Gestión Revolucionaria del Pueblo")
+def modulo_administrador_menus():
+    st.subheader("Gestión Revolucionaria de Menús")
     
     opcion = st.selectbox(
-        "Acciones Administrativas:",
-        ["Cargar Menú Diario", "Ver Stock Alimenticio", "Gestionar Ciudadanos"]
+        "Operaciones",
+        ["Ver todos", "Agregar", "Editar", "Eliminar"]
     )
     
-    if opcion == "Cargar Menú Diario":
-        with st.form("Formulario Menú"):
-            fecha = st.date_input("Fecha del menú", value=datetime.date.today())
-            tipo_comida = st.selectbox("Tipo de comida", ["Desayuno", "Almuerzo", "Cena"])
-            descripcion = st.text_area("Descripción del menú")
-            imagen_url = st.text_input("URL de la imagen (opcional)")
-            cantidad = st.number_input("Raciones disponibles", min_value=1, value=150)
+    # Ver todos los menús
+    if opcion == "Ver todos":
+        menus = obtener_menus()
+        st.table([{
+            "Fecha": m.fecha.strftime("%d/%m/%Y"),
+            "Comida": m.tipo_comida,
+            "Descripción": m.descripcion,
+            "Disponibles": m.cantidad_disponible
+        } for m in menus])
+    
+    # Agregar nuevo menú
+    elif opcion == "Agregar":
+        with st.form("Nuevo menú"):
+            fecha = st.date_input("Fecha")
+            tipo = st.selectbox("Tipo comida", ["Desayuno", "Almuerzo", "Cena"])
+            desc = st.text_area("Descripción")
+            img = st.text_input("URL Imagen")
+            cant = st.number_input("Cantidad", min_value=1)
             
-            if st.form_submit_button("Publicar para el Pueblo"):
-                with Session_menu() as session:
-                    nuevo_menu = MenuDia(
-                        fecha=fecha,
-                        tipo_comida=tipo_comida,
-                        descripcion=descripcion,
-                        imagen_url=imagen_url,
-                        cantidad_disponible=cantidad
-                    )
-                    session.add(nuevo_menu)
-                    session.commit()
-                st.success("¡El pueblo tendrá su alimento!")
+            if st.form_submit_button("Guardar"):
+                try:
+                    insertar_menu(fecha, tipo, desc, img, cant)
+                    st.success("¡Menú añadido!")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
     
-    elif opcion == "Ver Stock Alimenticio":
-        fecha_consulta = st.date_input("Consultar stock para:")
-        with Session_menu() as session:
-            menus = session.query(MenuDia).filter(MenuDia.fecha == fecha_consulta).all()
-            if menus:
-                st.table([{
-                    "Comida": m.tipo_comida,
-                    "Raciones": m.cantidad_disponible,
-                    "Menú": m.descripcion
-                } for m in menus])
-            else:
-                st.warning("No hay registros para esta fecha")
+    # Editar menú existente
+    elif opcion == "Editar":
+        menus = obtener_menus()
+        menu_sel = st.selectbox("Seleccionar menú", 
+                              [f"{m.id} | {m.fecha} - {m.tipo_comida}" for m in menus])
+        
+        if menu_sel:
+            id_menu = int(menu_sel.split("|")[0].strip())
+            with Session_menu() as session:
+                menu = session.get(MenuDia, id_menu)
+                
+                with st.form("Editar"):
+                    nueva_desc = st.text_area("Descripción", value=menu.descripcion)
+                    nueva_img = st.text_input("Imagen", value=menu.imagen_url)
+                    nueva_cant = st.number_input("Cantidad", 
+                                               value=menu.cantidad_disponible,
+                                               min_value=0)
+                    
+                    if st.form_submit_button("Actualizar"):
+                        actualizar_menu(id_menu, {
+                            "descripcion": nueva_desc,
+                            "imagen_url": nueva_img,
+                            "cantidad_disponible": nueva_cant
+                        })
+                        st.success("¡Actualización exitosa!")
     
-    elif opcion == "Gestionar Ciudadanos":
-        # (Implementar CRUD de usuarios similar a versiones anteriores)
-        pass
+    # Eliminar menú
+    elif opcion == "Eliminar":
+        menus = obtener_menus()
+        menu_sel = st.selectbox("Seleccionar menú a eliminar", 
+                              [f"{m.fecha} - {m.tipo_comida} - {m.descripcion}" for m in menus])
+        
+        if st.button("Confirmar eliminación"):
+            fecha, tipo, descripcion = menu_sel.split(" - ")
+            with Session_menu() as session:
+                menu = session.query(MenuDia).filter(
+                    MenuDia.fecha == datetime.datetime.strptime(fecha, "%Y-%m-%d").date(),
+                    MenuDia.tipo_comida == tipo,
+                    MenuDia.descripcion == descripcion
+                ).first()
+                eliminar_menu(menu.id)
+                st.success("¡Menú eliminado!")
+    
+def gestion_de_usuarios():
+        st.subheader("Panel de Administración")
+        
+        opcion = st.selectbox(
+            "Acciones:",
+            ["Ver usuarios", "Agregar usuario", "Editar usuario", "Eliminar usuario"]
+        )
+        
+        if opcion == "Ver usuarios":
+            usuarios = obtener_usuarios()
+            st.table([{"Nombre": u.nombre, "Rol": u.rol, "Cédula": u.cedula, 'Desayuno':u.desayuno_comido} for u in usuarios])
+        
+        elif opcion == "Agregar usuario":
+            with st.form("Agregar"):
+                nombre = st.text_input("Nombre completo")
+                rol = st.selectbox("Rol", ["administrador", "trabajador", "comensal"])
+                cedula = st.text_input("Cédula")
+                password = st.text_input("Contraseña", type="password")
+                
+                if st.form_submit_button("Guardar"):
+                    try:
+                        insertar_usuario(nombre, rol, cedula, password)
+                        st.success("Usuario creado!")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+        
+        elif opcion == "Editar usuario":
+            cedula_editar = st.text_input("Ingrese cédula del usuario a editar")
+            if cedula_editar:
+                usuario = next((u for u in obtener_usuarios() if u.cedula == cedula_editar), None)
+                
+                if usuario:
+                    with st.form("Editar"):
+                        nuevo_nombre = st.text_input("Nombre", value=usuario.nombre)
+                        nuevo_rol = st.selectbox("Rol", 
+                                            ["administrador", "trabajador", "comensal"],
+                                            index=["administrador", "trabajador", "comensal"].index(usuario.rol))
+                        nueva_pass = st.text_input("Nueva contraseña (dejar vacío para mantener)", type="password")
+                       # nuevo_band = st.selectbox("Banderin", [True, False], index=[True, False].index(usuario.banderin))
+                        if st.form_submit_button("Actualizar"):
+                            actualizar_usuario(
+                                cedula_editar,
+                                nuevo_nombre,
+                                nuevo_rol,
+                                nueva_pass if nueva_pass else None
+                               # nuevo_band
+                            )
+                            st.success("Usuario actualizado!")
+                else:
+                    st.error("Usuario no encontrado")
+        
+        elif opcion == "Eliminar usuario":
+            cedula_eliminar = st.text_input("Ingrese cédula del usuario a eliminar")
+            if cedula_eliminar:
+                if st.button("Confirmar eliminación"):
+                    eliminar_usuario(cedula_eliminar)
+                    st.success("Usuario eliminado del sistema")
 
 # ------------------------- Módulo de Trabajadores -------------------------
 def modulo_trabajador():
     st.subheader("Control de Distribución Proletaria")
     
-    col1, col2 = st.columns([0.4, 0.6])
-    with col1:
-        cedula = st.text_input("Cédula del Ciudadano")
-        if cedula:
-            with Session_usuarios() as session:
-                usuario = session.query(Usuario).filter(Usuario.cedula == cedula).first()
+    cedula = st.text_input("Cédula del Ciudadano")
+    
+    if cedula:
+        with Session_usuarios() as session:
+            usuario = session.query(Usuario).filter(Usuario.cedula == cedula).first()
+            
+            if not usuario:
+                st.error("¡Ciudadano no registrado!")
+                return
                 
-                if not usuario:
-                    st.error("¡Ciudadano no registrado!")
-                    return
+            if usuario.banderin:
+                st.warning("¡Ya recibió su ración diaria!")
+                return
+        
+        # Verificar existencia del menú primero
+        with Session_menu() as session:
+
+
+            tipo_comida = st.selectbox("Tipo de comida", ["Desayuno", "Almuerzo", "Cena"])
+
+            menu = session.query(MenuDia).filter(
+                (MenuDia.fecha == datetime.date.today()) and (MenuDia.tipo_comida==tipo_comida)  # Asegurar coincidencia exacta
+            ).first()
+                  
+            if not menu:
+                st.error("⚠️ El menú del día no ha sido cargado")
+                return
                 
-                if usuario.banderin:
-                    st.warning("¡Ya recibió su ración diaria!")
-                    return
-                
-                st.success("Acceso autorizado")
-                
-            if st.button("Registrar consumo"):
+            if menu.cantidad_disponible <= 0:
+                st.error("¡No hay raciones disponibles!")
+                return
+        
+        if st.button("Registrar consumo"):
+            
+            try:
+                # Actualizar usuario
                 with Session_usuarios() as session:
                     usuario = session.query(Usuario).filter(Usuario.cedula == cedula).first()
                     usuario.banderin = True
                     session.commit()
                 
+                # Actualizar menú
                 with Session_menu() as session:
-                    menu = session.query(MenuDia).filter(
-                        MenuDia.fecha == datetime.date.today(),
-                        MenuDia.tipo_comida == "Almuerzo"
-                    ).first()
+                    menu = session.query(MenuDia).filter((MenuDia.fecha == datetime.date.today())and
+                                                         (MenuDia.tipo_comida==tipo_comida)).first()
+                    
                     menu.cantidad_disponible -= 1
                     session.commit()
-                
+                    
+                st.success("¡Consumo registrado con éxito!")
                 st.rerun()
+                
+            except Exception as e:
+                st.error(f"Error revolucionario: {str(e)}")
+                session.rollback()
 
 # ------------------------- Módulo de Comensales -------------------------
 def modulo_comensal():
@@ -192,7 +314,7 @@ def modulo_comensal():
 
 # ------------------------- Interfaz Principal -------------------------
 def main():
-    poblar_usuarios_iniciales()
+    #poblar_usuarios_iniciales()
     
     if not st.session_state.logged_in:
         st.title("Bienvenido al Comedor Popular")
@@ -227,7 +349,8 @@ def main():
         with co2:
             menu_items = ["Inicio", "Estado Alimenticio"]
             if st.session_state.user_info["rol"] == "administrador":
-                menu_items.append("Administración")
+                menu_items.append("Administración de menús")
+                menu_items.append("Gestionar Ciudadanos")
             elif st.session_state.user_info["rol"] == "trabajador":
                 menu_items.append("Control de Acceso")
             
@@ -240,8 +363,10 @@ def main():
             )
         
         # Contenido según rol
-        if navbar == "Administración" and st.session_state.user_info["rol"] == "administrador":
-            modulo_administrador()
+        if navbar == "Administración de menús" and st.session_state.user_info["rol"] == "administrador":
+            modulo_administrador_menus()
+        elif navbar == "Gestionar Ciudadanos" and st.session_state.user_info["rol"] == "administrador":
+            gestion_de_usuarios()
         elif navbar == "Control de Acceso" and st.session_state.user_info["rol"] == "trabajador":
             modulo_trabajador()
         else:

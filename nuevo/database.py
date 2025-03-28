@@ -17,7 +17,7 @@ class Usuario(Base):
     rol = Column(String, nullable=False)
     cedula = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    banderin = Column(Boolean, default=False)  # Nueva columna
+    
     def verificar_password(self, password):
         """Verifica si la contraseña coincide con el hash almacenado"""
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash)
@@ -62,7 +62,7 @@ def eliminar_usuario(cedula):
         session.commit()
     session.close()
 
-def actualizar_usuario(cedula, nombre=None, rol=None, password=None):
+def actualizar_usuario(cedula, nombre=None, rol=None, password=None, banderin=None):
     """Actualiza los datos de un usuario"""
     session = Session()
     usuario = session.query(Usuario).filter(Usuario.cedula == cedula).first()
@@ -73,6 +73,8 @@ def actualizar_usuario(cedula, nombre=None, rol=None, password=None):
             usuario.rol = rol
         if password:
             usuario.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        
+        usuario.banderin = banderin
         session.commit()
     session.close()
 
