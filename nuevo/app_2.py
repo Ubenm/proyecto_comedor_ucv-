@@ -216,7 +216,7 @@ def gestionar_registros():
         "Cédula": r.cedula_usuario,
         "Fecha": r.fecha_hora.strftime("%d/%m/%Y"),
         "Comida": r.tipo_comida,
-        "Menú": r.descripcion_menu
+        "Descipción": r.descripcion_menu
     } for r in registros])
     
     st.divider()
@@ -334,7 +334,7 @@ def main():
                         }
                         st.rerun()
                     else:
-                        st.error("¡Credenciales incorrectas, camarada!")
+                        st.error("¡Credenciales incorrectas!")
     
     else:
         # Barra de navegación
@@ -346,8 +346,8 @@ def main():
             menu_items = ["Inicio", "Estado Alimenticio"]
             if st.session_state.user_info["rol"] == "administrador":
                 menu_items.append("Administración de menús")
-                menu_items.append("Gestionar Ciudadanos")
-                menu_items.append("Gestionar registros")
+                menu_items.append("Gestionar Usuarios")
+                menu_items.append("Gestionar Registros")
 
             elif st.session_state.user_info["rol"] == "trabajador":
                 menu_items.append("Control de Acceso")
@@ -363,9 +363,9 @@ def main():
         # Contenido según rol
         if navbar == "Administración de menús" and st.session_state.user_info["rol"] == "administrador":
             modulo_administrador_menus()
-        elif navbar == "Gestionar Ciudadanos" and st.session_state.user_info["rol"] == "administrador":
+        elif navbar == "Gestionar Usuarios" and st.session_state.user_info["rol"] == "administrador":
             gestion_de_usuarios()
-        elif navbar == "Gestionar registros" and st.session_state.user_info["rol"] == "administrador":
+        elif navbar == "Gestionar Registros" and st.session_state.user_info["rol"] == "administrador":
             gestionar_registros()
         elif navbar == "Control de Acceso" and st.session_state.user_info["rol"] == "trabajador":
             modulo_trabajador()
