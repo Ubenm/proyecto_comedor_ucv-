@@ -245,16 +245,16 @@ def gestionar_registros():
 
 # ------------------------- Módulo de Trabajadores -------------------------
 def modulo_trabajador():
-    st.subheader("Registro de Consumo Proletario")
+    st.subheader("Registro de Consumo")
     
-    cedula = st.text_input("Cédula del Ciudadano")
+    cedula = st.text_input("Cédula del usuario")
     tipo_comida = st.selectbox("Tipo de Comida", ["Desayuno", "Almuerzo", "Cena"])
     
     if cedula and tipo_comida:
         # Paso 1: Verificar si es usuario válido
         usuarios = [u.cedula for u in obtener_usuarios()]
         if cedula not in usuarios:
-            st.error("¡Ciudadano no registrado en el sistema!")
+            st.error("¡Usuario no registrado en el sistema!")
             return
             
         # Paso 2: Verificar registro previo
